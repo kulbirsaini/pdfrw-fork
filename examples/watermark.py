@@ -96,19 +96,27 @@ if __name__ == "__main__":
     parser.add_option('-w', dest='watermark_fname', help='watermark file name (pdf)')
     parser.add_option('-d', dest='pdfdir', help='watermark all pdf files in this directory')
     parser.add_option('-o', dest='outdir', help='outputdir used with option -d', default='tmp')
+    parser.add_option('-s', dest='skip_pages', help='page numbers to be skipped -d', default='')
     options, args = parser.parse_args()
     
     if options.input_fname and options.watermark_fname:
         watermark = pagexobj(PdfReader(options.watermark_fname, decompress=False).pages[0])
         outfn = 'watermark.' + os.path.basename(options.input_fname)
         pages = PdfReader(options.input_fname, decompress=False).pages
-        
-        PdfWriter().addpages([fixpage(x, watermark) for x in pages]).write(outfn)
+
+        skip_pages = [int(y) - 1 for y in filter(lambda x: x != '', options.skip_pages.split(','))]
+        new_pages = []
+        for i in range(len(pages)):
+            if i in skip_pages:
+                new_pages.append(pages[i])
+            else:
+                new_pages.append(fixpage(pages[i], watermark))
+
+        PdfWriter().addpages(new_pages).write(outfn)
     
     elif options.pdfdir and options.watermark_fname:
         batch_watermark(options.pdfdir, options.watermark_fname, options.outdir)
     
     else:
         parser.print_help()
-        
-        
+
